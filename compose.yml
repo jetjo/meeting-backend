@@ -38,33 +38,129 @@ services:
   # We also expose port 80 to connect to the proxy from the host machine.
   ###################################################
   proxy:
-    image: traefik:v2.11
-    command: --providers.docker
+    image: traefik:v3.3
+    privileged: true
+    # 配置环境变量`DNSPOD_API_KEY`
+    environment:
+      - LEGO_DISABLE_CNAME_SUPPORT=true
+      - TENCENTCLOUD_HTTP_TIMEOUT=60
+      - TENCENTCLOUD_POLLING_INTERVAL=10
+      - TENCENTCLOUD_PROPAGATION_TIMEOUT=60
+      - TENCENTCLOUD_TTL=1200
+      - TENCENTCLOUD_SECRET_ID_FILE=/var/run/secrets/tencent/id
+      - TENCENTCLOUD_SECRET_KEY_FILE=/var/run/secrets/tencent/key
+      # persistentVolumeClaim:
+      #   claimName: traefik-pvc
+    command:
+      - --api=true
+      - --api.insecure=true
+      - --providers.docker
+      - --providers.docker.exposedbydefault=false #除非明确，否则不暴露容器
+      - --entrypoints.web.address=:80
+      #声明一个名为`web`的`entryPoints`，监听端口80! 要想外界能访问到，只通过`ports`暴露端口不行
+      # - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      # `to`的值不能是`websecure`, 否则traefik会告诉浏览器重定向到443端口，而不是暴露的65443端口。。。，垃圾🦙
+      - --entrypoints.web.http.redirections.entrypoint.to=:65443
+      # - --entrypoints.web.http.redirections.entrypoint.port=65443 # 没有这个选项
+      - --entryPoints.web.http.redirections.entrypoint.scheme=https # 要配合开启entryPoints.websecure.http.tls
+      - "--entryPoints.websecure.address=:443"
+      # - "--entryPoints.websecure.asDefault=true"
+      - "--entryPoints.websecure.http.tls=true"
+      - "--entryPoints.websecure.http.tls.certresolver=myresolver"
+      # - "--entrypoints.traefik.http.tls=true"
+      # - "--entrypoints.traefik.http.tls.certresolver=myresolver"
+      # 端点开启TLS后，默认端口会自动变成443，所以如果不想被自动改变，就要手动指定
+      - "--entrypoints.traefik.address=:8081"
+      # - "--entrypoints.traefik.middlewares=traefik-auth" # 导致瘫痪
+      # 如果没有expose,没必要重定向
+      # - --entrypoints.traefik.http.redirections.entrypoint.to=:65443
+      # - "--entrypoints.traefik.http.redirections.entrypoint.scheme=https" 
+      # ! tls-challenge要求必须使用443端口
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=false"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=false"
+      # ! 配置使用`dndChallenge`方式
+      - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
+      # ! 提供`DNS record`
+      # ! https://go-acme.github.io/lego/dns/dnspod/#:~:text=DNSPod%20(deprecated)-,dnspod%20(deprecated),-Use%20the%20Tencent
+      # ! DNSPod已经弃用。。。🦙害我折腾这么久😩
+      # - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=dnspod"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=tencentcloud"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge.delaybeforecheck=15"
+      # - "--certificatesresolvers.myresolver.acme.dnschallenge.entrypoints=websecure" 没有此选项
+      # - "--certificatesresolvers.myresolver.acme.dnschallenge.resolvers=[\"1.1.1.1:53\", \"8.8.8.8:53\"]" 格式不对
+      # - "--certificatesresolvers.myresolver.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
+      # Let’s Encrypt ACME API endpoint
+      # ! 千万不要使用这个caServer, 因为生成的证书根本没发安装。。。
+      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.caserver=https://acme.zerossl.com/v2/DV90"
+      - "--certificatesresolvers.myresolver.acme.eab.kid=QEOwic78Nq7RvLlqWYji2A"
+      # - "--certificatesresolvers.myresolver.acme.eab.hmacKey=2qqOxXSuBToH3wOat5UNswvwULvK0pDf6NfWDhTIBmCsNl7n2yqhe-DTloHA42fHgZG0ZKzXFpApg5XG4uPXCw"
+      - "--certificatesresolvers.myresolver.acme.eab.hmacEncoded=2qqOxXSuBToH3wOat5UNswvwULvK0pDf6NfWDhTIBmCsNl7n2yqhe-DTloHA42fHgZG0ZKzXFpApg5XG4uPXCw"
+      # - "--certificatesresolvers.myresolver.acme.eab.hmacEncoded=true"
+      # - "--certificatesresolvers.myresolver.acme.email=bingsea@foxmail.com"
+      # - "--certificatesresolvers.myresolver.acme.email=1922677837@qq.com" # let's encrypt的通知邮箱
+      - "--certificatesresolvers.myresolver.acme.email=yyi056152@gmail.com" # zerossl的通知邮箱
+      # where your ACME certificates are saved to,所在目录需要`600`权限，通过在`volumes`配置中挂载目录
+      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.myresolver.acme.storage=/zerossl/acme.json"
+      # - "--entrypoints.websecure.http.tls.domains[0].main=goldgod.xyz"
+      # - "--entrypoints.websecure.http.tls.domains[0].sans=py.goldgod.xyz"
+      # - "--entrypoints.websecure.http.tls.domains[0].sans=*.goldgod.xyz"
+      # - "--entrypoints.websecure.http.tls.domains[1].main=py.goldgod.xyz"
     ports:
       - 80:80
+      - 65443:443
+      - 58080:8081
+      # - 50080:80
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
-  ###################################################
-  # Service: backend
-  #
-  # This service is the Node.js server that provides the API for the app.
-  # When the container starts, it will use the image that results
-  # from building the Dockerfile, targeting the backend-dev stage.
-  #
-  # The Compose Watch configuration is used to automatically sync the code
-  # from the host machine to the container. This allows the server to be
-  # automatically reloaded when code changes are made.
-  #
-  # The environment variables configure the application to connect to the
-  # database, which is also configured in this Compose file. We obviously
-  # wouldn't hard-code these values in a production environment. But, in
-  # dev, these values are fine.
-  #
-  # Finally, the labels are used to configure Traefik (the reverse proxy) with
-  # the appropriate routing rules. In this case, all requests to localhost/api/*
-  # will be forwarded to this service's port 3000. 
-  ###################################################
+      # - ./traefik.yml:/traefik.yml
+      # - logs:/logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # - ../traefik/letsencrypt:/letsencrypt
+      - ../traefik/zerossl:/zerossl
+      - ../secret/tencent:/var/run/secrets/tencent
+      - ../secret/mysql:/var/run/secrets/mysql
+      - ../secret/traefik:/var/run/secrets/traefik
+    networks:
+      - traefik-net
+    labels:
+      traefik.enable: true
+      traefik.tls.stores.default.defaultgeneratedcert.resolver: myresolver # New label #1
+      traefik.tls.stores.default.defaultgeneratedcert.domain.main: goldgod.xyz # New label #2
+      traefik.tls.stores.default.defaultgeneratedcert.domain.sans: py.goldgod.xyz,db.goldgod.xyz # New label #2
+      # 经测试，`dashboard`router的`service`指向`dashboard@internal`和`api@internal`都可以。。。
+      # traefik.http.routers.dashboard.service: dashboard@internal
+      traefik.http.routers.dashboard.service: api@internal
+      traefik.http.services.api.loadbalancer.server.port: 8080 #可以不用配置
+      # traefik.http.routers.traefik.rule: Host(`py.goldgod.xyz`) # && PathPrefix(`/traefik`)
+      traefik.http.routers.traefik.rule: Host(`localhost`) # && PathPrefix(`/traefik`)
+      traefik.http.routers.dashboard.entrypoints: traefik
+      traefik.http.middlewares.traefik-auth.digestauth.usersfile: "/var/run/secrets/traefik/users"
+      traefik.http.middlewares.traefik-auth.digestauth.realm: "traefik"
+      traefik.http.routers.dashboard.middlewares: traefik-auth
+      traefik.http.middlewares.traefik-auth.digestauth.headerField: X-WebAuth-User
+      traefik.http.middlewares.traefik-auth.digestauth.removeheader: true
+      ###################################################
+      # Service: backend
+      #
+      # This service is the Node.js server that provides the API for the app.
+      # When the container starts, it will use the image that results
+      # from building the Dockerfile, targeting the backend-dev stage.
+      #
+      # The Compose Watch configuration is used to automatically sync the code
+      # from the host machine to the container. This allows the server to be
+      # automatically reloaded when code changes are made.
+      #
+      # The environment variables configure the application to connect to the
+      # database, which is also configured in this Compose file. We obviously
+      # wouldn't hard-code these values in a production environment. But, in
+      # dev, these values are fine.
+      #
+      # Finally, the labels are used to configure Traefik (the reverse proxy) with
+      # the appropriate routing rules. In this case, all requests to localhost/api/*
+      # will be forwarded to this service's port 3000. 
+      ###################################################
   backend:
     build:
       context: ./
@@ -82,9 +178,13 @@ services:
         - path: ./backend/package.json
           action: rebuild
     labels:
-      traefik.http.routers.backend.rule: Host(`localhost`) && PathPrefix(`/api`)
+      traefik.enable: true
+      traefik.http.routers.backend.rule: Host(`py.goldgod.xyz`) && PathPrefix(`/api`) # 前端页面接口请求的地址和前端一致，所以这里也得改成域名
       traefik.http.services.backend.loadbalancer.server.port: 3000
-
+      traefik.http.routers.backend.entrypoints: websecure
+      # traefik.http.routers.backend.entrypoints: web
+    networks:
+      - traefik-net
   ###################################################
   # Service: client
   #
@@ -112,9 +212,20 @@ services:
         - path: ./client/package.json
           action: rebuild
     labels:
-      traefik.http.routers.client.rule: Host(`localhost`)
-      traefik.http.services.client.loadbalancer.server.port: 5173
-
+      traefik.enable: true
+      # `rule`千万不能用排除操作符`!`，否则使得`backend`service的router的`rule`失效
+      traefik.http.routers.view.rule: Host(`py.goldgod.xyz`) && PathPrefix(`/app`) #&& !PathPrefix(`/traefik`)
+      traefik.http.routers.view.service: svc_view
+      traefik.http.services.svc_view.loadbalancer.server.port: 5173
+      traefik.http.routers.view_hmr.rule: Host(`py.goldgod.xyz`) && PathPrefix(`/app/__bundler_hmr`)
+      traefik.http.routers.view_hmr.service: svc_view_hmr
+      traefik.http.services.svc_view_hmr.loadbalancer.server.port: 5175
+      traefik.http.routers.view.entrypoints: websecure
+      traefik.http.routers.view_hmr.entrypoints: websecure
+      # traefik.http.routers.view.entrypoints: web
+      # traefik.http.routers.view_hmr.entrypoints: web
+    networks:
+      - traefik-net
   ###################################################
   # Service: mysql
   #
@@ -138,7 +249,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: secret
       MYSQL_DATABASE: todos
-
+    networks:
+      - traefik-net
   ###################################################
   # Service: phpmyadmin
   #
@@ -161,15 +273,37 @@ services:
       PMA_USER: root
       PMA_PASSWORD: secret
     labels:
-      traefik.http.routers.phpmyadmin.rule: Host(`db.localhost`)
+      traefik.enable: true
+      traefik.http.routers.phpmyadmin.rule: Host(`db.goldgod.xyz`)
       traefik.http.services.phpmyadmin.loadbalancer.server.port: 80
-
-###################################################
-# Volumes
-#
-# For this application stack, we only have one volume. It's used to persist the
-# data for the MySQL service. We are only going to use the default values,
-# hence the lack of any configuration for the volume.
-###################################################
+      traefik.http.routers.phpmyadmin.entrypoints: websecure
+      # ```bash
+      # apt install apache2-utils
+      # htdigest -c users traefik bingy
+      # ```bash
+      # traefik.http.middlewares.test-auth.digestauth.users: "test:traefik:a2688e031edb4be6a3797f3882655c05,test2:traefik:518845800f9e2bfb1f1f740ec24f074e"
+      # 必须在此定义，否则报错error="middleware \"test-auth@docker\" does not exist"，
+      # 不能和traefik共用
+      # traefik.http.middlewares.test-auth.digestauth.usersfile: "/var/run/secrets/mysql/users"
+      traefik.http.routers.phpmyadmin.middlewares: traefik-auth
+      # traefik.http.middlewares.test-auth.digestauth.realm: "traefik"
+      # traefik.http.middlewares.test-auth.digestauth.title: "Login" # 没有这一项
+    networks:
+      - traefik-net
+    # volumes:
+    #   - ../secret/mysql:/var/run/secrets/mysql
+    ###################################################
+    # Volumes
+    #
+    # For this application stack, we only have one volume. It's used to persist the
+    # data for the MySQL service. We are only going to use the default values,
+    # hence the lack of any configuration for the volume.
+    ###################################################
 volumes:
   todo-mysql-data:
+
+
+networks:
+  traefik-net:
+    name: traefik-net
+    # dirver: bridge

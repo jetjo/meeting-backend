@@ -34,7 +34,7 @@ export function AddItemForm({ onNewItem }) {
                     value={newItem}
                     onChange={(e) => setNewItem(e.target.value)}
                     type="text"
-                    placeholder="New Item"
+                    placeholder="选购商品"
                     aria-label="New item"
                 />
                 <Button
@@ -43,7 +43,7 @@ export function AddItemForm({ onNewItem }) {
                     disabled={!newItem.length}
                     className={submitting ? 'disabled' : ''}
                 >
-                    {submitting ? 'Adding...' : 'Add Item'}
+                    {submitting ? '稍等片刻...' : '加入购物车'}
                 </Button>
             </InputGroup>
         </Form>
