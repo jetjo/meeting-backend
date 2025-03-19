@@ -30,7 +30,8 @@ COPY client/src ./src
 # the default command to start the Vite development server.
 ###################################################
 FROM client-base AS client-dev
-CMD ["yarn", "dev"]
+EXPOSE 5173
+CMD ["sh", "-c", "pwd && ls -al && yarn dev"]
 
 ###################################################
 # Stage: client-build
@@ -40,9 +41,6 @@ CMD ["yarn", "dev"]
 ###################################################
 FROM client-base AS client-build
 RUN yarn build
-
-
-
 
 ###################################################
 ################  BACKEND STAGES  #################
@@ -60,7 +58,8 @@ RUN --mount=type=cache,id=yarn,target=/usr/local/share/.cache/yarn \
     yarn install --frozen-lockfile
 COPY backend/spec ./spec
 COPY backend/src ./src
-CMD ["yarn", "dev"]
+EXPOSE 3000
+CMD ["sh", "-c", "pwd && ls -al && yarn dev"]
 
 ###################################################
 # Stage: test
@@ -88,5 +87,6 @@ RUN --mount=type=cache,id=yarn,target=/usr/local/share/.cache/yarn \
     yarn install --production --frozen-lockfile
 COPY backend/src ./src
 COPY --from=client-build /usr/local/app/dist ./src/static
+# 仅仅是告诉Dockerfile使用者，应用在监听3000端口
 EXPOSE 3000
 CMD ["node", "src/index.js"]

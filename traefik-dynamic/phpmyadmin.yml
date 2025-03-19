@@ -1,0 +1,23 @@
+http:
+  services:
+    phpmyadmin:
+      loadBalancer:
+        servers:
+          - url: "http://phpmyadmin-meeting-backend:80"
+  routers:
+    phpmyadmin:
+      rule: Host(`db.goldgod.xyz`)
+      service: phpmyadmin #@docker #:80
+      tls:
+        certResolver: myresolver
+      entryPoints: 
+        - websecure
+      middlewares:
+        - mysql-auth
+  middlewares:
+    mysql-auth:
+      digestAuth:
+        usersFile: "/var/run/secrets/mysql/users"
+        realm: "traefik"
+        headerField: X-WebAuth-User
+        removeHeader: false

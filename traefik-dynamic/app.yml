@@ -1,0 +1,29 @@
+http:
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: "http://api-meeting-backend:3000"
+    app:
+      loadBalancer:
+        servers:
+          - url: "http://app-meeting-backend:5173"
+  routers:
+    api:
+      rule: Host(`app.goldgod.xyz`) && PathPrefix(`/api`)
+      service: api #@docker #:3000
+      tls:
+        certResolver: myresolver
+      entryPoints: 
+        - websecure
+      # middlewares:
+      #   - traefik-auth
+    app:
+      rule: Host(`app.goldgod.xyz`)
+      service: app #@docker #:5173
+      tls:
+        certResolver: myresolver
+      entryPoints: 
+        - websecure
+      # middlewares:
+      #   - traefik-auth

@@ -1,0 +1,20 @@
+http:
+  routers:
+    traefik:
+      # && PathPrefix(`/dashboard`) 如果要配置`dashboard` prefix的话，必须同时配置`api` prefix，因为`dashboard`和`api`是两个服务，`dashboard`依赖`api`，需要请求`api`的数据
+      rule: Host(`py.goldgod.xyz`)  
+      service: api@internal
+      tls:
+        certResolver: myresolver
+      entryPoints: 
+        - websecure
+      middlewares:
+        - traefik-auth
+
+  middlewares:
+    traefik-auth:
+      digestAuth:
+        usersFile: "/var/run/secrets/traefik/users"
+        realm: "traefik"
+        headerField: X-WebAuth-User
+        removeHeader: false

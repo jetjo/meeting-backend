@@ -1,6 +1,18 @@
 {
     "cSpell.words": [
+        "certificatesresolvers",
+        "certresolver",
+        "digestauth",
+        "dnschallenge",
         "exposedbydefault",
-        "traefik"
+        "httpchallenge",
+        "myresolver",
+        "redirections",
+        "tencentcloud",
+        "tlschallenge",
+        "traefik",
+        "usersfile",
+        "userspwd",
+        "websecure"
     ]
 }

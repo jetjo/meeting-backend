@@ -1,6 +1,7 @@
 const waitPort = require('wait-port');
 const fs = require('fs');
 const mysql = require('mysql2');
+const { EOL } = require('node:os');
 
 const {
     MYSQL_HOST: HOST,
@@ -18,8 +19,11 @@ let pool;
 async function init() {
     const host = HOST_FILE ? fs.readFileSync(HOST_FILE) : HOST;
     const user = USER_FILE ? fs.readFileSync(USER_FILE) : USER;
-    const password = PASSWORD_FILE ? fs.readFileSync(PASSWORD_FILE) : PASSWORD;
+    const _password = PASSWORD_FILE ? fs.readFileSync(PASSWORD_FILE, { encoding: 'utf-8' }) : PASSWORD;
     const database = DB_FILE ? fs.readFileSync(DB_FILE) : DB;
+    const password = PASSWORD_FILE ? _password.slice(0, _password.indexOf(EOL)) : _password; // + 1) : _password;
+    console.log({ host, user, password, database, PASSWORD_FILE, PASSWORD, EOL });
+
 
     await waitPort({
         host,

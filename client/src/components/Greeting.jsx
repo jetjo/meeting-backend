@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export function Greeting() {
-    const [greeting, setGreeting] = useState(null);
+    const [greeting, setGreeting] = useState('hello the fucking world~');
 
     useEffect(() => {
         fetch('/api/greeting')

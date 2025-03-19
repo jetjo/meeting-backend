@@ -1,0 +1,216 @@
+core:
+  defaultRuleSyntax: v3
+
+global:
+  checkNewVersion: false
+  # Send anonymous usage data
+  sendAnonymousUsage: false
+
+certificatesResolvers:
+  myresolver:
+    # Enable ACME (Let's Encrypt): automatic SSL.
+    acme:
+      eab:
+        # kty: "RSA"
+        kid: "QEOwic78Nq7RvLlqWYji2A"
+        hmacEncoded: "2qqOxXSuBToH3wOat5UNswvwULvK0pDf6NfWDhTIBmCsNl7n2yqhe-DTloHA42fHgZG0ZKzXFpApg5XG4uPXCw"
+      # Email address used for registration.
+      #
+      # Required
+      #
+      email: "yyi056152@gmail.com"
+
+      # File or key used for certificates storage.
+      #
+      # Required
+      #
+      storage: "/zerossl/acme.json"
+
+      # CA server to use.
+      # Uncomment the line to use Let's Encrypt's staging server,
+      # leave commented to go to prod.
+      #
+      # Optional
+      # Default: "https://acme-v02.api.letsencrypt.org/directory"
+      #
+      # caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
+      # 浏览器中打开，返回：
+      # {
+      #   "newNonce": "https://acme.zerossl.com/v2/DV90/newNonce",
+      #   "newAccount": "https://acme.zerossl.com/v2/DV90/newAccount",
+      #   "newOrder": "https://acme.zerossl.com/v2/DV90/newOrder",
+      #   "revokeCert": "https://acme.zerossl.com/v2/DV90/revokeCert",
+      #   "renewalInfo": "https://ari.trust-provider.com/renewalInfo",
+      #   "keyChange": "https://acme.zerossl.com/v2/DV90/keyChange",
+      #   "meta": {
+      #     "termsOfService": "https://www.sectigo.com/uploads/files/Certificate-Subscriber-Agreement-2.7-click.pdf",
+      #     "website": "https://zerossl.com",
+      #     "caaIdentities": [
+      #       "sectigo.com",
+      #       "trust-provider.com",
+      #       "usertrust.com",
+      #       "comodoca.com",
+      #       "comodo.com",
+      #       "entrust.net",
+      #       "affirmtrust.com"
+      #     ],
+      #     "externalAccountRequired": true
+      #   }
+      # }
+      caServer: "https://acme.zerossl.com/v2/DV90"
+
+      # The certificates' duration in hours.
+      # It defaults to 2160 (90 days) to follow Let's Encrypt certificates' duration.
+      #
+      # Optional
+      # Default: 2160
+      #
+      # certificatesDuration: 2160
+
+      # Preferred chain to use.
+      #
+      # If the CA offers multiple certificate chains, prefer the chain with an issuer matching this Subject Common Name.
+      # If no match, the default offered chain will be used.
+      #
+      # Optional
+      # Default: ""
+      #
+      # preferredChain: 'ISRG Root X1'
+
+      # KeyType to use.
+      #
+      # Optional
+      # Default: "RSA4096"
+      #
+      # Available values : "EC256", "EC384", "RSA2048", "RSA4096", "RSA8192"
+      #
+      # keyType: RSA4096
+
+      # Use a TLS-ALPN-01 ACME challenge.
+      #
+      # Optional (but recommended)
+      #
+      # tlsChallenge: false
+
+      # Use a HTTP-01 ACME challenge.
+      #
+      # Optional
+      #
+      # httpChallenge:
+
+      # EntryPoint to use for the HTTP-01 challenges.
+      #
+      # Required
+      #
+      # entryPoint: web
+
+      # Use a DNS-01 ACME challenge rather than HTTP-01 challenge.
+      # Note: mandatory for wildcard certificate generation.
+      #
+      # Optional
+      #
+      dnsChallenge:
+        # DNS provider used.
+        #
+        # Required
+        #
+        provider: tencentcloud
+
+        propagation:
+
+            # By default, the provider will verify the TXT DNS challenge record before letting ACME verify.
+            # If delayBeforeCheck is greater than zero, this check is delayed for the configured duration in seconds.
+            # Useful if internal networks block external DNS queries.
+            #
+            # Optional
+            # Default: 0
+            #
+            delayBeforeChecks: "15"
+
+            # Use following DNS servers to resolve the FQDN authority.
+            #
+            # Optional
+            # Default: empty
+            #
+            # resolvers
+            # - "1.1.1.1:53"
+            # - "8.8.8.8:53"
+
+            # Disable the DNS propagation checks before notifying ACME that the DNS challenge is ready.
+            #
+            # NOT RECOMMENDED:
+            # Increase the risk of reaching Let's Encrypt's rate limits.
+            #
+            # Optional
+            # Default: false
+            #
+            # disablePropagationCheck: true
+
+entryPoints:
+  local:
+    address: ":8080"
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: ":65443"
+          scheme: https
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: myresolver
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    watch: true
+  file:
+    directory: /var/run/traefik
+    watch: true
+
+api:
+  insecure: false
+  dashboard: true
+
+# ping:
+#   entryPoint: websecure
+
+log:
+  level: INFO # TRACE, DEBUG, INFO, WARN, ERROR, FATAL, and PANIC.
+  filePath: /etc/traefik/log/traefik.log
+  maxSize: 1 # MB
+  maxBackups: 1000
+  maxAge: 7 # days
+  compress: true
+
+accessLog:
+  filePath: /etc/traefik/log/access.log
+  bufferingSize: 100
+  # filters:
+  #   # statusCodes:
+  #   #   - "200"
+  #   #   - "300-302"
+  #   retryAttempts: true
+  #   minDuration: "10ms"
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop
+    headers:
+      defaultMode: keep
+      names:
+        User-Agent: redact
+        Authorization: drop
+        Content-Type: keep
+
+# metrics: {}
+#   # otlp: {}
+
+tracing: 
+  serviceName: traefik-tracing
+  sampleRate: 1.0
+  capturedRequestHeaders:
+    - X-Traefik-Tracing
