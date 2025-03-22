@@ -29,13 +29,6 @@ services:
   # application where the frontend and backend are bundled together. We can 
   # also use it to route requests to phpMyAdmin, which won't be accessible at 
   # localhost, but at db.localhost.
-  #
-  # The image for this service comes directly from Docker Hub and is a Docker
-  # Official Image. Since Traefik can be configured in a variety of ways, we
-  # configure it here to watch the Docker events for new containers and to use
-  # their labels for configuration. That's why the Docker socket is mounted.
-  #
-  # We also expose port 80 to connect to the proxy from the host machine.
   ###################################################
   traefik:
     # container_name: traefik
@@ -52,8 +45,8 @@ services:
       - TENCENTCLOUD_SECRET_KEY_FILE=/var/run/secrets/tencent/key
       # persistentVolumeClaim:
       #   claimName: traefik-pvc
-    command:
-        - --configFile=/etc/traefik/traefik.yml
+    # command:
+    #     - --configFile=/etc/traefik/traefik.yml
     #   - --api.insecure=false #和authentication middleware冲突
     #   - --providers.docker.exposedbydefault=false #除非明确，否则不暴露容器
     #   - --entrypoints.web.address=:80
@@ -136,15 +129,6 @@ services:
   # The Compose Watch configuration is used to automatically sync the code
   # from the host machine to the container. This allows the server to be
   # automatically reloaded when code changes are made.
-  #
-  # The environment variables configure the application to connect to the
-  # database, which is also configured in this Compose file. We obviously
-  # wouldn't hard-code these values in a production environment. But, in
-  # dev, these values are fine.
-  #
-  # Finally, the labels are used to configure Traefik (the reverse proxy) with
-  # the appropriate routing rules. In this case, all requests to localhost/api/*
-  # will be forwarded to this service's port 3000. 
   ###################################################
   api:
     container_name: api-meeting-backend
@@ -186,10 +170,6 @@ services:
   # The Compose Watch configuration is used to automatically sync the code from
   # the host machine to the container. This allows the client to be automatically
   # reloaded when code changes are made.
-  #
-  # The labels are used to configure Traefik (the reverse proxy) with the 
-  # appropriate routing rules. In this case, all requests to localhost will be
-  # forwarded to this service's port 5173.
   ###################################################
   app:
     container_name: app-meeting-backend
@@ -221,19 +201,6 @@ services:
   
   ###################################################
   # Service: mysql
-  #
-  # The MySQL service is used to provide the database for the application.
-  # The image for this service comes directly from Docker Hub and is a Docker 
-  # Official Image.
-
-  # The data is persisted in a volume named todo-mysql-data. Using a volume 
-  # allows us to take down the services without losing the data. When we start
-  # the services again, the data will still be there (assuming we didn't delete
-  # the volume, of course!).
-  #
-  # The environment variables configure the root password and the name of the
-  # database to create. Since these are used only for local development, it's
-  # ok to hard-code them here.
   ###################################################
   mysql:
     # container_name: mysql
@@ -260,10 +227,6 @@ services:
   # The environment variables configure the connection to the database and 
   # provide the default credentials, letting us immediately open the interface
   # without needing to log in.
-  #
-  # The labels are used to configure Traefik (the reverse proxy) with the
-  # routing rules. In this case, all requests to db.localhost will be forwarded
-  # to this service's port 80.
   ###################################################
   phpmyadmin:
     container_name: phpmyadmin-meeting-backend
@@ -294,10 +257,6 @@ services:
 
 ###################################################
 # Volumes
-#
-# For this application stack, we only have one volume. It's used to persist the
-# data for the MySQL service. We are only going to use the default values,
-# hence the lack of any configuration for the volume.
 ###################################################
 volumes:
   todo-mysql-data:

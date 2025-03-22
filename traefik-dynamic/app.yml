@@ -12,8 +12,8 @@ http:
     api:
       rule: Host(`app.goldgod.xyz`) && PathPrefix(`/api`)
       service: api #@docker #:3000
-      tls:
-        certResolver: myresolver
+      # tls:
+      #   certResolver: myresolver # 不必，使用websecure的tls
       entryPoints: 
         - websecure
       # middlewares:
@@ -21,9 +21,5 @@ http:
     app:
       rule: Host(`app.goldgod.xyz`)
       service: app #@docker #:5173
-      tls:
-        certResolver: myresolver
       entryPoints: 
         - websecure
-      # middlewares:
-      #   - traefik-auth

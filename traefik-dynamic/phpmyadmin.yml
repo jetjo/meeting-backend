@@ -8,8 +8,6 @@ http:
     phpmyadmin:
       rule: Host(`db.goldgod.xyz`)
       service: phpmyadmin #@docker #:80
-      tls:
-        certResolver: myresolver
       entryPoints: 
         - websecure
       middlewares:
