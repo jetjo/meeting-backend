@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+    traefik:
+      # container_name: traefik-meeting-backend
+      image: traefik:v3.3
+      # privileged: true
+      environment:
+        - LEGO_DISABLE_CNAME_SUPPORT=true
+        - TENCENTCLOUD_HTTP_TIMEOUT=60
+        - TENCENTCLOUD_POLLING_INTERVAL=10
+        - TENCENTCLOUD_PROPAGATION_TIMEOUT=60
+        - TENCENTCLOUD_TTL=1200
+        - TENCENTCLOUD_SECRET_ID_FILE=/var/run/secrets/tencent/id
+        - TENCENTCLOUD_SECRET_KEY_FILE=/var/run/secrets/tencent/key
+      ports:
+        - 80:80 #应用端口，自动跳转https
+        - 65443:443 #应用端口
+      volumes:
+        - ./traefik:/etc/traefik
+        - ./traefik-dynamic:/var/run/traefik
+        # - ./traefik.yml:/traefik.yml
+        # - logs:/logs
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        # - ../traefik/letsencrypt:/letsencrypt
+        - ../traefik/zerossl:/zerossl
+        - ../secret/tencent:/var/run/secrets/tencent:ro
+        - ../secret/mysql:/var/run/secrets/mysql:ro
+        - ../secret/traefik:/var/run/secrets/traefik:ro
+      # networks:
+      #   - traefik-net
+      # restart: always
+      # depends_on:
+      #   - api
+      #   - app
+      #   - phpmyadmin
