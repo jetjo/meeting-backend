@@ -19,11 +19,22 @@ let pool;
 async function init() {
     const host = HOST_FILE ? fs.readFileSync(HOST_FILE) : HOST;
     const user = USER_FILE ? fs.readFileSync(USER_FILE) : USER;
-    const _password = PASSWORD_FILE ? fs.readFileSync(PASSWORD_FILE, { encoding: 'utf-8' }) : PASSWORD;
+    const _password = PASSWORD_FILE
+        ? fs.readFileSync(PASSWORD_FILE, { encoding: 'utf-8' })
+        : PASSWORD;
     const database = DB_FILE ? fs.readFileSync(DB_FILE) : DB;
-    const password = PASSWORD_FILE ? _password.slice(0, _password.indexOf(EOL)) : _password; // + 1) : _password;
-    console.log({ host, user, password, database, PASSWORD_FILE, PASSWORD, EOL });
-
+    const password = PASSWORD_FILE
+        ? _password.slice(0, _password.indexOf(EOL))
+        : _password; // + 1) : _password;
+    console.log({
+        host,
+        user,
+        password,
+        database,
+        PASSWORD_FILE,
+        PASSWORD,
+        EOL,
+    });
 
     await waitPort({
         host,
@@ -41,7 +52,13 @@ async function init() {
         charset: 'utf8mb4',
     });
 
-    return new Promise((acc, rej) => {
+    // process.stderr.write('???');
+
+    // throw new Error('???');
+
+    console.error('???');
+
+    const todos = new Promise((acc, rej) => {
         pool.query(
             'CREATE TABLE IF NOT EXISTS todo_items (id varchar(36), name varchar(255), completed boolean) DEFAULT CHARSET utf8mb4',
             (err) => {
@@ -52,6 +69,88 @@ async function init() {
             },
         );
     });
+
+    const parks = new Promise((acc, rej) => {
+        pool.query(
+            'CREATE TABLE IF NOT EXISTS parks (id varchar(36), name varchar(16), county varchar(16)) DEFAULT CHARSET utf8mb4',
+            (err) => {
+                if (err) return rej(err);
+
+                console.log(`Connected to mysql db at host ${HOST}`);
+                acc();
+            },
+        );
+    });
+
+    const buildings = new Promise((acc, rej) => {
+        pool.query(
+            'CREATE TABLE IF NOT EXISTS buildings (id varchar(36), name varchar(16)) DEFAULT CHARSET utf8mb4',
+            (err) => {
+                if (err) return rej(err);
+
+                console.log(`Connected to mysql db at host ${HOST}`);
+                acc();
+            },
+        );
+    });
+
+    const meetings = new Promise((acc, rej) => {
+        pool.query(
+            'CREATE TABLE IF NOT EXISTS meetings (id varchar(36), name varchar(16), deviceInfoId varchar(36), image varchar(255), locationId varchar(36), personNum int, rangesId varchar(36)) DEFAULT CHARSET utf8mb4',
+            (err) => {
+                if (err) return rej(err);
+
+                console.log(`Connected to mysql db at host ${HOST}`);
+                acc();
+            },
+        );
+    });
+
+    const deviceInfos = new Promise((acc, rej) => {
+        pool.query(
+            'CREATE TABLE IF NOT EXISTS devices (id varchar(36), name varchar(255)) DEFAULT CHARSET utf8mb4',
+            (err) => {
+                if (err) return rej(err);
+
+                console.log(`Connected to mysql db at host ${HOST}`);
+                acc();
+            },
+        );
+    });
+
+    const locations = new Promise((acc, rej) => {
+        pool.query(
+            'CREATE TABLE IF NOT EXISTS locations (id varchar(36), buildName varchar(16), floorName varchar(16), parkName varchar(16)) DEFAULT CHARSET utf8mb4',
+            (err) => {
+                if (err) return rej(err);
+
+                console.log(`Connected to mysql db at host ${HOST}`);
+                acc();
+            },
+        );
+    });
+
+    const ranges = new Promise((acc, rej) => {
+        pool.query(
+            'CREATE TABLE IF NOT EXISTS ranges (id varchar(36), start varchar(16), end varchar(16)) DEFAULT CHARSET utf8mb4',
+            (err) => {
+                if (err) return rej(err);
+
+                console.log(`Connected to mysql db at host ${HOST}`);
+                acc();
+            },
+        );
+    });
+
+    return Promise.all([
+        todos,
+        parks,
+        buildings,
+        meetings,
+        deviceInfos,
+        locations,
+        ranges,
+    ]);
 }
 
 async function teardown() {

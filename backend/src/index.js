@@ -6,15 +6,23 @@ const getItems = require('./routes/getItems');
 const addItem = require('./routes/addItem');
 const updateItem = require('./routes/updateItem');
 const deleteItem = require('./routes/deleteItem');
+const getMeetingList = require('./routes/meeting-list');
+const getBuildingList = require('./routes/building-list');
+const getParkList = require('./routes/park-list');
 
 app.use(express.json());
 app.use(express.static(__dirname + '/static'));
+
+const VER = 'v1';
 
 app.get('/api/greeting', getGreeting);
 app.get('/api/items', getItems);
 app.post('/api/items', addItem);
 app.put('/api/items/:id', updateItem);
 app.delete('/api/items/:id', deleteItem);
+app.get(`/api/${VER}/meetings`, getMeetingList);
+app.get(`/api/${VER}/buildings`, getBuildingList);
+app.get(`/api/${VER}/parks`, getParkList);
 
 db.init()
     .then(() => {
