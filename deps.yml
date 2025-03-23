@@ -1,0 +1,29 @@
+###################################################
+# Services
+#
+# The services define the individual components of our application stack.
+# For each service, a separate container will be launched.
+###################################################
+services:
+  ###################################################
+  # Service: api
+  ###################################################
+  api:
+    container_name: api-deps
+    image: node:20
+    working_dir: /usr/local/app
+    command: ["sh", "-c", "pwd && ls -al && yarn install"]
+    volumes:
+      - ./backend:/usr/local/app
+  
+  ###################################################
+  # Service: app
+  ###################################################
+  app:
+    container_name: app-deps
+    image: node:20
+    working_dir: /usr/local/app
+    command: ["sh", "-c", "pwd && ls -al && yarn install"]
+    volumes:
+      - ./client:/usr/local/app
+
