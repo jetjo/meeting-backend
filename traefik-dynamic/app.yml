@@ -3,11 +3,13 @@ http:
     api:
       loadBalancer:
         servers:
-          - url: "http://api-meeting-backend:3000"
+          - url: "http://meeting_api:3000"
+          # - url: "http://api-meeting-backend:3000"
     app:
       loadBalancer:
         servers:
-          - url: "http://app-meeting-backend:5173"
+          - url: "http://meeting_app:5173"
+          # - url: "http://app-meeting-backend:5173"
   routers:
     api:
       rule: Host(`app.goldgod.xyz`) && PathPrefix(`/api`)

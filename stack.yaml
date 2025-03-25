@@ -1,36 +1,393 @@
 version: "3.7"
 
+###################################################
+# This Compose file provides the development environment for the todo app.
+#
+# Seeing the final version of the application bundles the frontend with the
+# backend, we are able to "simulate" that by using a proxy to route requests
+# to the appropriate service. All requests to /api will be routed to the 
+# backend while all other requests will be sent to the client service. While
+# there is some overlap in the routing rules, the proxy determines the service
+# based on the most specific rule.
+#
+# To support easier debugging and troubleshooting, phpMyAdmin is also included
+# to provide a web interface to the MySQL database.
+###################################################
+
+###################################################
+# Services
+#
+# The services define the individual components of our application stack.
+# For each service, a separate container will be launched.
+###################################################
 services:
-    traefik:
-      # container_name: traefik-meeting-backend
-      image: traefik:v3.3
-      # privileged: true
-      environment:
-        - LEGO_DISABLE_CNAME_SUPPORT=true
-        - TENCENTCLOUD_HTTP_TIMEOUT=60
-        - TENCENTCLOUD_POLLING_INTERVAL=10
-        - TENCENTCLOUD_PROPAGATION_TIMEOUT=60
-        - TENCENTCLOUD_TTL=1200
-        - TENCENTCLOUD_SECRET_ID_FILE=/var/run/secrets/tencent/id
-        - TENCENTCLOUD_SECRET_KEY_FILE=/var/run/secrets/tencent/key
-      ports:
-        - 80:80 #应用端口，自动跳转https
-        - 65443:443 #应用端口
-      volumes:
-        - ./traefik:/etc/traefik
-        - ./traefik-dynamic:/var/run/traefik
-        # - ./traefik.yml:/traefik.yml
-        # - logs:/logs
-        - /var/run/docker.sock:/var/run/docker.sock:ro
-        # - ../traefik/letsencrypt:/letsencrypt
-        - ../traefik/zerossl:/zerossl
-        - ../secret/tencent:/var/run/secrets/tencent:ro
-        - ../secret/mysql:/var/run/secrets/mysql:ro
-        - ../secret/traefik:/var/run/secrets/traefik:ro
-      # networks:
-      #   - traefik-net
-      # restart: always
-      # depends_on:
-      #   - api
-      #   - app
-      #   - phpmyadmin
+
+  ###################################################
+  # Service: traefik
+  #
+  # This service is a reverse proxy that will route requests to the appropriate
+  # service. Think of it like a HTTP router or a load balancer. It simply 
+  # forwards requests and allows us to simulate the final version of the 
+  # application where the frontend and backend are bundled together. We can 
+  # also use it to route requests to phpMyAdmin, which won't be accessible at 
+  # localhost, but at db.localhost.
+  ###################################################
+  traefik:
+    # container_name: traefik
+    # host_name: meeting_traefik
+    image: traefik:v3.3
+    # user: "${UID}:${GID}"
+    secrets:
+      - traefik.yml
+      - source: custom_crt
+        target: /run/secrets/site.crt
+        mode: 0400
+      - source: custom_key
+        target: /run/secrets/site.key
+        mode: 0400
+    # env_file:
+    #   - .env
+    environment:
+      - LEGO_DISABLE_CNAME_SUPPORT=true
+      - TENCENTCLOUD_HTTP_TIMEOUT=60
+      - TENCENTCLOUD_POLLING_INTERVAL=10
+      - TENCENTCLOUD_PROPAGATION_TIMEOUT=60
+      - TENCENTCLOUD_TTL=1200
+      - TENCENTCLOUD_SECRET_ID_FILE=/var/run/secrets/tencent/id
+      - TENCENTCLOUD_SECRET_KEY_FILE=/var/run/secrets/tencent/key
+      # persistentVolumeClaim:
+      #   claimName: traefik-pvc
+    # command:
+        # - --providers.file.filename=/etc/traefik/proxy-config.toml # Using file for reading the config
+      # - --providers.file.watch=true
+        # - --configFile=/etc/traefik/confs.yml
+    #   - --api.insecure=false #和authentication middleware冲突
+    #   - --providers.docker.exposedbydefault=false #除非明确，否则不暴露容器
+    #   - --entrypoints.web.address=:80
+    #   #声明一个名为`web`的`entryPoints`，监听端口80! 要想外界能访问到，只通过`ports`暴露端口不行
+    #   # - --entrypoints.web.http.redirections.entrypoint.to=websecure
+    #   # `to`的值不能是`websecure`, 否则traefik会告诉浏览器重定向到443端口，而不是暴露的65443端口。。。，垃圾🦙
+    #   - --entrypoints.web.http.redirections.entrypoint.to=:65443
+    #   # - --entrypoints.web.http.redirections.entrypoint.port=65443 # 没有这个选项
+    #   - --entryPoints.web.http.redirections.entrypoint.scheme=https # 要配合开启entryPoints.websecure.http.tls
+    #   # `entrypoints.traefik`是开启`api.insecure`时自动配置的，安全模式下不需要
+    #   # - "--entrypoints.traefik.http.tls=true"
+    #   # - "--entrypoints.traefik.http.tls.certresolver=myresolver"
+    #   # 端点开启TLS后，默认端口会自动变成443，所以如果不想被自动改变，就要手动指定
+    #   # - "--entrypoints.traefik.address=:8080"
+    #   # - "--entrypoints.traefik.middlewares=traefik-auth" # 导致瘫痪
+    #   # 如果没有expose,没必要重定向
+    #   # - --entrypoints.traefik.http.redirections.entrypoint.to=:65443
+    #   # ! tls-challenge要求必须使用443端口
+    #   - "--certificatesresolvers.myresolver.acme.tlschallenge=false"
+    #   - "--certificatesresolvers.myresolver.acme.httpchallenge=false"
+    #   # ! 配置使用`dndChallenge`方式
+    #   - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
+    #   # ! 提供`DNS record`
+    #   # ! https://go-acme.github.io/lego/dns/dnspod/#:~:text=DNSPod%20(deprecated)-,dnspod%20(deprecated),-Use%20the%20Tencent
+    #   # ! DNSPod已经弃用。。。🦙害我折腾这么久😩
+    #   # - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=dnspod"
+    #   - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=tencentcloud"
+    #   # - "--certificatesresolvers.myresolver.acme.dnschallenge.entrypoints=websecure" 没有此选项
+    #   # - "--certificatesresolvers.myresolver.acme.dnschallenge.resolvers=[\"1.1.1.1:53\", \"8.8.8.8:53\"]" 格式不对
+    #   # - "--certificatesresolvers.myresolver.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
+    #   # Let’s Encrypt ACME API endpoint
+    #   # ! 千万不要使用这个caServer, 因为生成的证书根本没发安装。。。
+    #   # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+    #   # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+    #   - "--certificatesresolvers.myresolver.acme.caserver=https://acme.zerossl.com/v2/DV90"
+      # - "--certificatesresolvers.myresolver.acme.eab.kid=${TRAEFIK_CERTIFICATESRESOLVERS_myresolver_ACME_EAB_KID}"
+    #   # - "--certificatesresolvers.myresolver.acme.eab.hmacKey="
+      # - "--certificatesresolvers.myresolver.acme.eab.hmacEncoded=${TRAEFIK_CERTIFICATESRESOLVERS_myresolver_ACME_EAB_HMACENCODED}"
+    #   # - "--certificatesresolvers.myresolver.acme.email=" # let's encrypt的通知邮箱
+    #   # where your ACME certificates are saved to,所在目录需要`600`权限，通过在`volumes`配置中挂载目录
+    #   # - "--certificatesresolvers.myresolver.acme.storage="
+    entrypoint:
+      - "traefik"
+      - "--configFile=/run/secrets/traefik.yml"
+    #   # - sh
+    #   # - -c
+      # - "tail -f /dev/null"
+    ports:
+      - 80:80 #应用端口，自动跳转https
+      - 65443:443 #应用端口
+      # - target: 6060
+      #   published: 6060
+      #   #protocol: tcp
+      #   mode: host
+      # - target: 443
+      #   published: 443
+      #   #protocol: tcp
+      #   mode: host
+      # - target: 8080
+      #   published: 8080
+      #   #protocol: tcp
+      #   mode: ingress # traefik dashboard
+    volumes:
+      - ./traefik:/etc/traefik
+      - ./traefik-dynamic:/var/run/traefik
+      # - ./traefik.yml:/traefik.yml
+      # - logs:/logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # - ../traefik/letsencrypt:/letsencrypt
+      - ../traefik/zerossl:/zerossl
+      - ../secret/tencent:/var/run/secrets/tencent:ro
+      - ../secret/mysql:/var/run/secrets/mysql:ro
+      - ../secret/traefik:/var/run/secrets/traefik:ro
+    networks:
+      - traefik-net
+    depends_on:
+      - api
+      - app
+      - phpmyadmin
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: vip # dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+          # - node.hostname == gcloud1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+      # resources:
+        # limits:
+        #   cpus: '0.5'
+        #   memory: 512M
+        # reservations:
+        #   cpus: '0.1'
+        #   memory: 256M
+    # labels:
+    #   traefik.enable: false
+    #   # 经测试，`dashboard`router的`service`指向`dashboard@internal`和`api@internal`都可以。。。
+    #   # traefik.http.routers.dashboard.service: dashboard@internal
+    #   # service和loadbalancer（即使配置错误）必须配置一个，否则重定向到websecure。。。
+    #   traefik.http.routers.traefik.service: api@internal
+    #   # traefik.http.services.api@internal.loadbalancer.server.port: 8881 #无效
+    #   # !不能设置PathPrefix,否则无法连接traefik
+    #   traefik.http.routers.traefik.rule: Host(`py.goldgod.xyz`) #&& PathPrefix(`/traefik`)
+  
+  ###################################################
+  # Service: api
+  #
+  # This service is the Node.js server that provides the API for the app.
+  # When the container starts, it will use the image that results
+  # from building the Dockerfile, targeting the backend-dev stage.
+  #
+  # The Compose Watch configuration is used to automatically sync the code
+  # from the host machine to the container. This allows the server to be
+  # automatically reloaded when code changes are made.
+  ###################################################
+  api:
+    container_name: meeting_api
+    # hostname: meeting_api
+    # user: "${UID}:${GID}"
+    image: node:20
+    secrets:
+      - db_meeting_password
+      # - source: custom_crt
+      #   target: /run/secrets/site.crt
+      #   mode: 0400
+      # - source: custom_key
+      #   target: /run/secrets/site.key
+      #   mode: 0400
+    working_dir: /usr/local/app
+    command: ["sh", "-c", "pwd && ls -al && yarn dev 2>&1 | tee /usr/local/app/logs/app.log"]
+    volumes:
+      - ./backend:/usr/local/app
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: meeting
+      MYSQL_PASSWORD_FILE: /run/secrets/db_meeting_password
+      MYSQL_DB: meeting
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+          # - node.hostname == gcloud1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+    # command:
+    #   - --providers.file.filename=/etc/traefik/proxy-config.toml # Using file for reading the config
+    #   - --providers.file.watch=true
+    # develop:
+    #   watch:
+    #     - path: ./backend/src
+    #       action: sync
+    #       target: /usr/local/app/src
+    # labels:
+    #   traefik.enable: true
+    #   # # traefik.http.routers.api_priv.rule: Host(`localhost`) && PathPrefix(`/api`) # 前端页面接口请求的地址和前端一致，所以这里也得改成域名
+    #   # traefik.http.routers.api_priv.tls: false # 不能阻止为路由`api_priv`对应的域名颁发证书，是否要为`api_priv`的`rule`指定的域名颁发证书，取决于`entrypoints`的`schema`配置
+    #   # traefik.http.routers: api@file # 非法
+    #   # traefik.http.services.api.loadbalancer.server.port: 3000
+    #   traefik.http.routers.api_priv.entrypoints: local # 将路由仅仅绑定到一个未开启TLS的端点，以防止为其对应域名颁发证书
+    networks:
+      - traefik-net
+    depends_on:
+      - mysql
+      # mysql:
+      #       condition: service_healthy
+      #       restart: true
+  
+  ###################################################
+  # Service: app
+  #
+  # The client service is the React app that provides the frontend for the app.
+  # When the container starts, it will use the image that results from building
+  # the Dockerfile, targeting the dev stage.
+  #
+  # The Compose Watch configuration is used to automatically sync the code from
+  # the host machine to the container. This allows the client to be automatically
+  # reloaded when code changes are made.
+  ###################################################
+  app:
+    container_name: meeting_app
+    image: node:20
+    working_dir: /usr/local/app
+    command: ["sh", "-c", "pwd && ls -al && yarn dev"]
+    volumes:
+      - ./client:/usr/local/app
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+    # develop:
+    #   watch:
+    #     - path: ./client/src
+    #       action: sync
+    #       target: /usr/local/app/src
+    # labels:
+    #   traefik.enable: true
+    #   # # `rule`千万不能用排除操作符`!`，否则使得`backend`service的router的`rule`失效
+    #   # # traefik.http.routers.app.rule: Host(`app.goldgod.xyz`) # && PathPrefix(`/app`) #&& !PathPrefix(`/traefik`)
+    #   # # traefik.http.routers.app.service: app # 如果一个service中其实有多个绑定不同端口的子服务, 可以为每个服务声明一个路由以及对应子服务名，然后间接通过子服务名设置负载均衡器端口
+    #   # traefik.http.services.app.loadbalancer.server.port: 5173
+    #   # traefik.http.routers.view_hmr.rule: Host(`py.goldgod.xyz`) && PathPrefix(`/app/__bundler_hmr`)
+    #   # traefik.http.routers.view_hmr.service: svc_view_hmr # 如果一个service中其实有多个绑定不同端口的子服务, 可以为每个服务声明一个路由以及对应子服务名，然后间接通过子服务名设置负载均衡器端口
+    #   # traefik.http.services.svc_view_hmr.loadbalancer.server.port: 5175
+    #   traefik.http.routers.app_priv.entrypoints: local
+    networks:
+      - traefik-net
+    depends_on:
+      - api
+  
+  ###################################################
+  # Service: mysql
+  ###################################################
+  mysql:
+    # container_name: mysql
+    image: mysql:8.0
+    secrets:
+      - mysql_root_password
+      - db_meeting_password
+    volumes:
+      - meeting_db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_DATABASE: meeting
+      MYSQL_USER: meeting
+      MYSQL_PASSWORD_FILE: /run/secrets/db_meeting_password
+      # MYSQL_HOST: mysql
+      # MYSQL_ROOT_HOST: "%"
+      # HOST_CACHE_SIZE: 0
+    networks:
+      - traefik-net # 否则backend-dev无法连接
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+    # labels:
+    #   traefik: false
+
+  ###################################################
+  # Service: phpmyadmin
+  #
+  # This service provides a web interface to the MySQL database. It's useful
+  # for debugging and troubleshooting data, schemas, and more. The image for 
+  # this service comes directly from Docker Hub and is a Docker Official Image.
+  #
+  # The environment variables configure the connection to the database and 
+  # provide the default credentials, letting us immediately open the interface
+  # without needing to log in.
+  ###################################################
+  phpmyadmin:
+    container_name: meeting_phpmyadmin
+    image: phpmyadmin
+    secrets:
+      - mysql_root_password
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD_FILE: /run/secrets/mysql_root_password
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+    # labels:
+    #   traefik.enable: true
+    #   # traefik.http.services.phpmyadmin.loadbalancer.server.port: 80
+    #   traefik.http.routers.phpmyadmin_priv.entrypoints: local
+    #   # ```bash
+    #   # apt install apache2-utils
+    #   # htdigest -c users traefik bingy
+    #   # ```bash
+    #   # traefik.http.middlewares.test-auth.digestauth.users: "test:traefik:a2688e031edb4be6a3797f3882655c05,test2:traefik:518845800f9e2bfb1f1f740ec24f074e"
+    #   # 必须在此定义，否则报错error="middleware \"test-auth@docker\" does not exist"，
+    #   # 不能和traefik共用
+    #   # traefik.http.middlewares.test-auth.digestauth.usersfile: "/var/run/secrets/mysql/users"
+    networks:
+      - traefik-net
+    depends_on:
+      - mysql
+      # mysql:
+      #       condition: service_healthy
+      #       restart: true
+      # services.phpmyadmin.depends_on.0 must be a string
+      # - mysql:
+      #     condition: service_healthy
+    # volumes:
+    #   - ../secret/mysql:/var/run/secrets/mysql
+
+###################################################
+# Volumes
+###################################################
+volumes:
+  meeting_db:
+    # traefik-conf:
+
+networks:
+  traefik-net:
+    name: traefik-net
+    driver: overlay
+    attachable: true
+
+secrets:
+  mysql_root_password:
+    external: true # 意为在命令行中执行`openssl rand -base64 32 | docker secret create mysql_root_password -`创建的secret
+  db_meeting_password:
+    file: ../secret/mysql/db_meeting_password # 意为在命令行中执行`openssl rand -base64 32 > ../secret/mysql/db_meeting_password`创建的secret
+  custom_crt:
+    external: true
+    name: site.crt
+  custom_key:
+    external: true
+    name: site.key
+  traefik.yml:
+    file: ../secret/traefik/traefik.yml

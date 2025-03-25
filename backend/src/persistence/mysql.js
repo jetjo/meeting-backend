@@ -39,12 +39,15 @@ async function init() {
     await waitPort({
         host,
         port: 3306,
-        timeout: 10000,
+        timeout: 20000,
         waitForDns: true,
     });
 
     pool = mysql.createPool({
-        connectionLimit: 5,
+        acquireTimeout: 20000, // 默认 10000，连接超时，不包括为从连接池取连接的排队时间
+        connectionLimit: 10, // 默认 10
+        waitForConnections: true, // 默认 true，true: 连接池满负荷后，后续请求被排队而不是直接返回错误
+        queueLimit: 0, // 默认 0，0:不限制
         host,
         user,
         password,

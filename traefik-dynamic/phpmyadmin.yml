@@ -3,7 +3,8 @@ http:
     phpmyadmin:
       loadBalancer:
         servers:
-          - url: "http://phpmyadmin-meeting-backend:80"
+          - url: "http://meeting_phpmyadmin:80"
+          # - url: "http://phpmyadmin-meeting-backend:80"
   routers:
     phpmyadmin:
       rule: Host(`db.goldgod.xyz`)

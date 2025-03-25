@@ -11,9 +11,10 @@ certificatesResolvers:
     # Enable ACME (Let's Encrypt): automatic SSL.
     acme:
       eab:
-        # kty: "RSA"
-        kid: "QEOwic78Nq7RvLlqWYji2A"
-        hmacEncoded: "2qqOxXSuBToH3wOat5UNswvwULvK0pDf6NfWDhTIBmCsNl7n2yqhe-DTloHA42fHgZG0ZKzXFpApg5XG4uPXCw"
+      #   # kty: "RSA"
+      #   # kid: "${TRAEFIK_CERTIFICATESRESOLVERS_myresolver_ACME_EAB_KID}"
+      #   # hmacEncoded: "${TRAEFIK_CERTIFICATESRESOLVERS_myresolver_ACME_EAB_HMACENCODED}"
+
       # Email address used for registration.
       #
       # Required
@@ -163,7 +164,7 @@ entryPoints:
         certResolver: myresolver
 
 providers:
-  docker:
+  swarm:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     watch: true
