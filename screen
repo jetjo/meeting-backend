@@ -1,0 +1,63 @@
+#!/bin/sh
+
+# 当前目录INDEX NUMBER
+INODE=$(ls -di . | awk '{print $1}')
+
+# 当前目录BASE NAME
+DIRNAME=$(basename "$PWD")
+
+# Screen Session Name
+SESSION_NAME="$DIRNAME"_"$INODE"
+
+# 对于Screen来讲，SESSION_NAME不具有唯一性，session的全名是`<pid>.sockname`,`sockname`即为`SESSION_NAME`,`<pid>`是进程ID
+# 所以要先检查是否存在同名的screen session，否则会创建一个新的screen session，旧的screen session不受影响
+if screen -ls | grep -q "$SESSION_NAME"; then
+    echo "Screen session $SESSION_NAME already exists."
+else
+    if screen -ls $SESSION_NAME | grep -iq "No Socket"; then
+        # Screen Session in detached mode（`-dmS`） as daemon, `-dmS`是一个单一的参数
+        # `sh`可能是方便后续向`detached模式`的`screen session`中发送命令
+        screen -t "$DIRNAME" -dmS "$SESSION_NAME" #sh
+        # 但经测试，不加`sh`也可以正常工作
+        # screen -dmS "$SESSION_NAME"
+
+        # # stuff是screen的一个子命令，用于向screen发送输入
+        # # https://www.gnu.org/software/screen/manual/screen.html#Paste
+        # # https://stackoverflow.com/questions/7049252/how-to-create-a-screen-executing-given-command
+        # # The stuff command is to send keystrokes inside the screen. The $ before the string command is to make the shell parse the \n inside the quotes, and the newline is required to execute the command (like when you press enter).
+        # screen -S $SESSION_NAME -X stuff $'ls\n'
+        # # 或者输入以下，然后回车
+        # # screen -S $SESSION_NAME -X stuff "ls
+        # # 终端显示`>`等待输入，输入：
+        # # "
+
+        # screen -S "$SESSION_NAME" -X stuff $'pwd && ls -al\n' ## 在终端中手动输入时可以使用`$`，在这里不能用，否则`&& ls -al`会被当成另一个命令   
+        screen -S "$SESSION_NAME" -X stuff 'pwd && ls -al\n'
+        echo "Created new screen session: $SESSION_NAME"
+    else
+        # 来到这里，说明可能由于`screen`版本不同，导致使用`screen ls $SESSION_NAME`查询到`$SESSION_NAME`不存在时的输出结果中不再包含`No Socket`，属于意料之外的情况
+        # 报错并退出
+        echo "Error: $(screen -ls $SESSION_NAME)"
+        exit 1
+    fi
+fi
+
+# # 如果第一个参数是`-a`, 则...
+# if [ "$1" = "-a" ]; then
+#     echo "Option -a was passed."
+#     # Add your logic here for when -a is passed
+#     screen -r $SESSION_NAME
+# else
+#     echo "Option -a was not passed."
+# fi
+# 检查传入的参数中是否包含`-d`
+if echo "$@" | grep -q "\-d"; then
+    echo "Option -d was passed."
+else
+    echo "Option -d was not passed."
+    # 如果不包含`-d`，则附加到现有的screen session
+    # screen -r "$SESSION_NAME" # 如果session已经在其他终端中打开（actived），则会失败
+    # screen -x "$SESSION_NAME" 
+    # screen -D -r $SESSION_NAME
+    screen -D -RR $SESSION_NAME
+fi

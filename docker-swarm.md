@@ -2,7 +2,7 @@
 
 ## 打印单个Swarm Service信息
 
-```bash
+```sh
 docker service ps [服务名]
 ```
 
@@ -15,17 +15,17 @@ docker service ps [服务名]
 
 ## 查询单个Swarm Service的Task都在哪些Container上运行（仅输出Container的ID）
 
-```bash
+```sh
 docker ps --filter name=[服务名] -q
 ```
 
 同时登录并执行命令
 
-```bash
+```sh
 docker container exec $(docker ps --filter name=redis -q) ls -l /run/secrets
 ```
 
-```bash
+```sh
 docker container exec $(docker ps --filter name=redis -q) cat /run/secrets/my_secret_data
 ```
 
@@ -33,24 +33,24 @@ docker container exec $(docker ps --filter name=redis -q) cat /run/secrets/my_se
 
 ## 列出所有secrets
 
-```bash
+```sh
 docker secrets ls
 ```
 
 ## 移除服务对某个secret的访问权
 
-```bash
+```sh
 docker service update --secret-rm [secret名] [service名]
 ```
 
 ## 移除service
 
-```bash
+```sh
 docker service rm [service名]
 ```
 
 ## 移除secret
 
-```bash
+```sh
 docker secret rm [secret名]
 ```

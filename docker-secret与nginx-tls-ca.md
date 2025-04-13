@@ -2,20 +2,20 @@
 
 ## 生成根证书Key
 
-```bash
+```sh
 openssl genrsa -out "root-ca.key" 4096
 ```
 
 ## 生成根证书CSR
 
-```bash
+```sh
 openssl req \
           -new -key "root-ca.key" \
           -out "root-ca.csr" -sha256 \
           -subj '/C=US/ST=CA/L=San Francisco/O=Docker/CN=Swarm Secret Example CA'
 ```
 
-```bash
+```sh
 openssl req -new -key "root-ca.key" -out "root-ca.csr" -sha256 -subj '/C=US/ST=CA/L=San Francisco/O=Docker/CN=Swarm Secret Example CA'
 ```
 
@@ -34,14 +34,14 @@ subjectKeyIdentifier=hash
 
 ## 签名根证书
 
-```bash
+```sh
 openssl x509 -req  -days 3650  -in "root-ca.csr" \
                -signkey "root-ca.key" -sha256 -out "root-ca.crt" \
                -extfile "root-ca.cnf" -extensions \
                root_ca
 ```
 
-```bash
+```sh
 openssl x509 -req  -days 3650  -in "root-ca.csr" -signkey "root-ca.key" -sha256 -out "root-ca.crt" -extfile "root-ca.cnf" -extensions root_ca
 ```
 
@@ -51,18 +51,18 @@ openssl x509 -req  -days 3650  -in "root-ca.csr" -signkey "root-ca.key" -sha256 
 
 ## 生成站点证书Key
 
-```bash
+```sh
 openssl genrsa -out "site.key" 4096
 ```
 
 ## 生成站点证书CSR
 
-```bash
+```sh
 openssl req -new -key "site.key" -out "site.csr" -sha256 \
           -subj '/C=US/ST=CA/L=San Francisco/O=Docker/CN=localhost'
 ```
 
-```bash
+```sh
 openssl req -new -key "site.key" -out "site.csr" -sha256 -subj '/C=US/ST=CA/L=San Francisco/O=Docker/CN=localhost'
 ```
 
@@ -80,19 +80,19 @@ subjectKeyIdentifier=hash
 
 ## 签名站点证书
 
-```bash
+```sh
 openssl x509 -req -days 750 -in "site.csr" -sha256 \
     -CA "root-ca.crt" -CAkey "root-ca.key"  -CAcreateserial \
     -out "site.crt" -extfile "site.cnf" -extensions server
 ```
 
-```bash
+```sh
 openssl x509 -req -days 750 -in "site.csr" -sha256 -CA "root-ca.crt" -CAkey "root-ca.key"  -CAcreateserial -out "site.crt" -extfile "site.cnf" -extensions server
 ```
 
 ## 分别为`key`,`crt`,`conf`创建secret
 
-```bash
+```sh
 docker secret create site.key ./nginx/secret/site.key
 docker secret create site.crt ./nginx/secret/site.crt
 docker secret create site.conf ./nginx/conf/site.conf
@@ -103,7 +103,7 @@ docker secret create site.conf ./nginx/conf/site.conf
 
 ### 方式一
 
-```bash
+```sh
 docker service create \
      --name nginx \
      --secret site.key \
@@ -118,7 +118,7 @@ docker service create \
 
 ### 方式二
 
-```bash
+```sh
 docker service create \
      --name nginx \
      --secret site.key \
@@ -133,10 +133,10 @@ docker service create \
 
 ### 使用指定的证书验证Nginx Server
 
-```bash
+```sh
 curl --cacert ./nginx/secret/root-ca.crt https://localhost:30000
 ```
 
-```bash
+```sh
 openssl s_client -connect localhost:30000 -CAfile ./nginx/secret/root-ca.crt
 ```

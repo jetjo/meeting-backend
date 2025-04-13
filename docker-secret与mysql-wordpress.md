@@ -4,25 +4,25 @@
 
 *`-`*的意思是从标准输入读取
 
-```bash
+```sh
 openssl rand -base64 20 | docker secret create mysql_password -
 ```
 
 ## 生成Mysql root pwd
 
-```bash
+```sh
 openssl rand -base64 20 | docker secret create mysql_root_password -
 ```
 
 ## 创建overlay网络
 
-```bash
+```sh
 docker network create -d overlay  mysql_private
 ```
 
 ## 运行Mysql service
 
-```bash
+```sh
 docker service create \
      --name mysql \
      --replicas 1 \
@@ -39,7 +39,7 @@ docker service create \
 
 ## 运行Wordpress service
 
-```bash
+```sh
 docker service create \
      --name wordpress \
      --replicas 1 \
@@ -56,7 +56,7 @@ docker service create \
 
 ## 生成新的Mysql pwd
 
-```bash
+```sh
 openssl rand -base64 20 | docker secret create mysql_password_v2 -
 ```
 
@@ -65,7 +65,7 @@ openssl rand -base64 20 | docker secret create mysql_password_v2 -
 ***更新service，会导致服务重启***
 ***但是，至此，wordpress用户的pwd还是原来的***
 
-```bash
+```sh
 docker service update \
     --secret-rm mysql_password mysql
 
@@ -80,13 +80,13 @@ docker service update \
 
 ### 找出`mysql`service-task的container id
 
-```bash
+```sh
 docker ps --filter name=mysql -q
 ```
 
 ### 登录container，运行`mysqladmin`
 
-```bash
+```sh
 docker container exec $(docker ps --filter name=mysql -q) \
     bash -c 'mysqladmin --user=wordpress --password="$(< /run/secrets/old_mysql_password)" password "$(< /run/secrets/mysql_password)" '
 
@@ -94,7 +94,7 @@ docker container exec $(docker ps --filter name=mysql -q) \
 
 ### 更新Wordpress服务使用新的secret
 
-```bash
+```sh
 docker service update \
     --secret-rm mysql_password \
     --secret-add source=mysql_password_v2,target=wp_db_password \
@@ -104,7 +104,7 @@ docker service update \
 
 ## 吊销mysql service对旧secret的访问，并删除旧secret
 
-```bash
+```sh
 docker service update \
      --secret-rm mysql_password \
      mysql
@@ -114,7 +114,7 @@ docker secret rm mysql_password
 
 ## 清理
 
-```bash
+```sh
 docker service rm wordpress mysql
 
 docker volume rm mydata wpdata
