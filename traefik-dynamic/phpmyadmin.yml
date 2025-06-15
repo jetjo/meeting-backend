@@ -7,7 +7,7 @@ http:
           # - url: "http://phpmyadmin-meeting-backend:80"
   routers:
     phpmyadmin:
-      rule: Host(`db.goldgod.xyz`)
+      rule: Host(`db.aijsts.com`)
       service: phpmyadmin #@docker #:80
       entryPoints: 
         - websecure

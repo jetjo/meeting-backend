@@ -95,7 +95,7 @@ openssl x509 -req -days 750 -in "site.csr" -sha256 -CA "root-ca.crt" -CAkey "roo
 ```sh
 docker secret create site.key ./nginx/secret/site.key
 docker secret create site.crt ./nginx/secret/site.crt
-docker secret create site.conf ./nginx/conf/site.conf
+docker secret create nginx.conf ./nginx/conf/site.conf
 
 ```
 

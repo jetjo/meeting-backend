@@ -12,7 +12,7 @@ http:
           # - url: "http://app-meeting-backend:5173"
   routers:
     api:
-      rule: Host(`app.goldgod.xyz`) && PathPrefix(`/api`)
+      rule: Host(`app.aijsts.com`) && PathPrefix(`/api`)
       service: api #@docker #:3000
       # tls:
       #   certResolver: myresolver # 不必，使用websecure的tls
@@ -21,7 +21,7 @@ http:
       # middlewares:
       #   - traefik-auth
     app:
-      rule: Host(`app.goldgod.xyz`)
+      rule: Host(`app.aijsts.com`)
       service: app #@docker #:5173
       entryPoints: 
         - websecure

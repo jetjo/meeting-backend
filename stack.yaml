@@ -5,7 +5,7 @@ version: "3.7"
 #
 # Seeing the final version of the application bundles the frontend with the
 # backend, we are able to "simulate" that by using a proxy to route requests
-# to the appropriate service. All requests to /api will be routed to the 
+# to the appropriate service. All requests to /api will be routed to the
 # backend while all other requests will be sent to the client service. While
 # there is some overlap in the routing rules, the proxy determines the service
 # based on the most specific rule.
@@ -21,15 +21,14 @@ version: "3.7"
 # For each service, a separate container will be launched.
 ###################################################
 services:
-
   ###################################################
   # Service: traefik
   #
   # This service is a reverse proxy that will route requests to the appropriate
-  # service. Think of it like a HTTP router or a load balancer. It simply 
-  # forwards requests and allows us to simulate the final version of the 
-  # application where the frontend and backend are bundled together. We can 
-  # also use it to route requests to phpMyAdmin, which won't be accessible at 
+  # service. Think of it like a HTTP router or a load balancer. It simply
+  # forwards requests and allows us to simulate the final version of the
+  # application where the frontend and backend are bundled together. We can
+  # also use it to route requests to phpMyAdmin, which won't be accessible at
   # localhost, but at db.localhost.
   ###################################################
   traefik:
@@ -58,9 +57,9 @@ services:
       # persistentVolumeClaim:
       #   claimName: traefik-pvc
     # command:
-        # - --providers.file.filename=/etc/traefik/proxy-config.toml # Using file for reading the config
-      # - --providers.file.watch=true
-        # - --configFile=/etc/traefik/confs.yml
+    # - --providers.file.filename=/etc/traefik/proxy-config.toml # Using file for reading the config
+    # - --providers.file.watch=true
+    # - --configFile=/etc/traefik/confs.yml
     #   - --api.insecure=false #和authentication middleware冲突
     #   - --providers.docker.exposedbydefault=false #除非明确，否则不暴露容器
     #   - --entrypoints.web.address=:80
@@ -96,9 +95,9 @@ services:
     #   # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
     #   # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
     #   - "--certificatesresolvers.myresolver.acme.caserver=https://acme.zerossl.com/v2/DV90"
-      # - "--certificatesresolvers.myresolver.acme.eab.kid=${TRAEFIK_CERTIFICATESRESOLVERS_myresolver_ACME_EAB_KID}"
+    # - "--certificatesresolvers.myresolver.acme.eab.kid=${TRAEFIK_CERTIFICATESRESOLVERS_myresolver_ACME_EAB_KID}"
     #   # - "--certificatesresolvers.myresolver.acme.eab.hmacKey="
-      # - "--certificatesresolvers.myresolver.acme.eab.hmacEncoded=${TRAEFIK_CERTIFICATESRESOLVERS_myresolver_ACME_EAB_HMACENCODED}"
+    # - "--certificatesresolvers.myresolver.acme.eab.hmacEncoded=${TRAEFIK_CERTIFICATESRESOLVERS_myresolver_ACME_EAB_HMACENCODED}"
     #   # - "--certificatesresolvers.myresolver.acme.email=" # let's encrypt的通知邮箱
     #   # where your ACME certificates are saved to,所在目录需要`600`权限，通过在`volumes`配置中挂载目录
     #   # - "--certificatesresolvers.myresolver.acme.storage="
@@ -107,7 +106,7 @@ services:
       - "--configFile=/run/secrets/traefik.yml"
     #   # - sh
     #   # - -c
-      # - "tail -f /dev/null"
+    # - "tail -f /dev/null"
     ports:
       - 80:80 #应用端口，自动跳转https
       - 65443:443 #应用端口
@@ -153,12 +152,12 @@ services:
         delay: 5s
         max_attempts: 5
       # resources:
-        # limits:
-        #   cpus: '0.5'
-        #   memory: 512M
-        # reservations:
-        #   cpus: '0.1'
-        #   memory: 256M
+      # limits:
+      #   cpus: '0.5'
+      #   memory: 512M
+      # reservations:
+      #   cpus: '0.1'
+      #   memory: 256M
     # labels:
     #   traefik.enable: false
     #   # 经测试，`dashboard`router的`service`指向`dashboard@internal`和`api@internal`都可以。。。
@@ -168,7 +167,7 @@ services:
     #   # traefik.http.services.api@internal.loadbalancer.server.port: 8881 #无效
     #   # !不能设置PathPrefix,否则无法连接traefik
     #   traefik.http.routers.traefik.rule: Host(`py.goldgod.xyz`) #&& PathPrefix(`/traefik`)
-  
+
   ###################################################
   # Service: api
   #
@@ -194,7 +193,12 @@ services:
       #   target: /run/secrets/site.key
       #   mode: 0400
     working_dir: /usr/local/app
-    command: ["sh", "-c", "pwd && ls -al && yarn dev 2>&1 | tee /usr/local/app/logs/app.log"]
+    command:
+      [
+        "sh",
+        "-c",
+        "pwd && ls -al && yarn dev 2>&1 | tee /usr/local/app/logs/app.log",
+      ]
     volumes:
       - ./backend:/usr/local/app
     environment:
@@ -236,7 +240,7 @@ services:
       # mysql:
       #       condition: service_healthy
       #       restart: true
-  
+
   ###################################################
   # Service: app
   #
@@ -281,7 +285,7 @@ services:
       - traefik-net
     depends_on:
       - api
-  
+
   ###################################################
   # Service: mysql
   ###################################################
@@ -317,10 +321,10 @@ services:
   # Service: phpmyadmin
   #
   # This service provides a web interface to the MySQL database. It's useful
-  # for debugging and troubleshooting data, schemas, and more. The image for 
+  # for debugging and troubleshooting data, schemas, and more. The image for
   # this service comes directly from Docker Hub and is a Docker Official Image.
   #
-  # The environment variables configure the connection to the database and 
+  # The environment variables configure the connection to the database and
   # provide the default credentials, letting us immediately open the interface
   # without needing to log in.
   ###################################################
@@ -380,14 +384,15 @@ networks:
 
 secrets:
   mysql_root_password:
-    external: true # 意为在命令行中执行`openssl rand -base64 32 | docker secret create mysql_root_password -`创建的secret
+    file: ../secret/mysql/mysql_root__password
+    # external: true # 意为在命令行中执行`openssl rand -base64 32 | docker secret create mysql_root_password -`创建的secret
   db_meeting_password:
     file: ../secret/mysql/db_meeting_password # 意为在命令行中执行`openssl rand -base64 32 > ../secret/mysql/db_meeting_password`创建的secret
   custom_crt:
-    external: true
+    file: ../secret/nginx/site.crt
     name: site.crt
   custom_key:
-    external: true
+    file: ../secret/nginx/site.key
     name: site.key
   traefik.yml:
     file: ../secret/traefik/traefik.yml
